@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financieel Overzicht (Met Geheugen)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .btn-container {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
+        }
+
+        button:hover {
+            background-color: #357abd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+            color: #333;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            height: 24px;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #fafbfc;
+            font-weight: 600;
+            color: #5a6a85;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fcfdfe;
+        }
+
+        .text-col {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .currency-col {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .totaal-rij td {
+            border-top: 2px solid #cbd5e1;
+            font-weight: bold;
+            color: #1e293b;
+            background-color: #fafbfc;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+            padding: 6px 8px;
+            box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .currency-col input {
+            text-align: right;
+            width: 85%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="btn-container">
+        <button id="editBtn" onclick="toggleEdit()">Bewerken</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Omschrijving</th>
+                <th style="text-align: right;">Contant</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-col" id="label1">3D Print</td>
+                <td>
+                    <div class="currency-col">
+                        <span style="color: #94a3b8;">€</span>
+                        <span id="val1">150,00</span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="text-col" id="label2">Had Liggen</td>
+                <td>
+                    <div class="currency-col">
+                        <span style="color: #94a3b8;">€</span>
+                        <span id="val2">15,00</span>
+                    </div>
+                </td>
+            </tr>
+            <tr class="totaal-rij">
+                <td class="text-col">Totaal</td>
+                <td>
+                    <div class="currency-col">
+                        <span>€</span>
+                        <span id="valTotaal">165,00</span>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let isEditing = false;
+    const CORRECT_CODE = "4268";
+
+    // 1. Zodra de pagina opstart, laden we de opgeslagen gegevens in
+    window.onload = function() {
+        if (localStorage.getItem('label1')) document.getElementById('label1').innerText = localStorage.getItem('label1');
+        if (localStorage.getItem('label2')) document.getElementById('label2').innerText = localStorage.getItem('label2');
+        if (localStorage.getItem('val1')) document.getElementById('val1').innerText = localStorage.getItem('val1');
+        if (localStorage.getItem('val2')) document.getElementById('val2').innerText = localStorage.getItem('val2');
+        berekenTotaal(); // Bereken direct het totaal op basis van opgeslagen data
+    };
+
+    function toggleEdit() {
+        const btn = document.getElementById('editBtn');
+
+        if (!isEditing) {
+            let invoer = prompt("Voer de toegangscode in om te bewerken:");
+            
+            if (invoer === CORRECT_CODE) {
+                isEditing = true;
+                btn.innerText = "Opslaan";
+                btn.style.backgroundColor = "#2ecc71";
+                
+                makeEditable('label1', false);
+                makeEditable('label2', false);
+                makeEditable('val1', true);
+                makeEditable('val2', true);
+            } else if (invoer !== null) {
+                alert("Onjuiste code! Toegang geweigerd.");
+            }
+        } else {
+            isEditing = false;
+            btn.innerText = "Bewerken";
+            btn.style.backgroundColor = "#4a90e2";
+            
+            saveCell('label1');
+            saveCell('label2');
+            saveCell('val1', true);
+            saveCell('val2', true);
+
+            berekenTotaal();
+        }
+    }
+
+    function makeEditable(id, isNumber) {
+        const element = document.getElementById(id);
+        const huidigeWaarde = element.innerText;
+        
+        if (isNumber) {
+            const getalWaarde = huidigeWaarde.replace('.', '').replace(',', '.');
+            element.innerHTML = `<input type="number" id="input_${id}" step="0.01" value="${getalWaarde}">`;
+        } else {
+            element.innerHTML = `<input type="text" id="input_${id}" value="${huidigeWaarde}">`;
+        }
+    }
+
+    function saveCell(id, isNumber) {
+        const input = document.getElementById(`input_${id}`);
+        const element = document.getElementById(id);
+        
+        if (input) {
+            let eindWaarde = input.value;
+            if (isNumber) {
+                let num = parseFloat(input.value) || 0;
+                eindWaarde = num.toFixed(2).replace('.', ',');
+            }
+            element.innerText = eindWaarde;
+            
+            // 2. Sla de gegevens permanent op in de browser
+            localStorage.setItem(id, eindWaarde);
+        }
+    }
+
+    function berekenTotaal() {
+        let v1 = parseFloat(document.getElementById('val1').innerText.replace('.', '').replace(',', '.')) || 0;
+        let v2 = parseFloat(document.getElementById('val2').innerText.replace('.', '').replace(',', '.')) || 0;
+        
+        let totaal = v1 + v2;
+        document.getElementById('valTotaal').innerText = totaal.toFixed(2).replace('.', ',');
+    }
+</script>
+
+</body>
+</html>
